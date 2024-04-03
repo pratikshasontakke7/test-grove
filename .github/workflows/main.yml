@@ -8,23 +8,38 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: '18' # Replace with the desired Node.js version
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3 # docs https://pnpm.io/continuous-integration#github-actions
-        with:
-            version: 8
-      - name: Install dependencies
-        run: pnpm install
+    - uses: actions/checkout@v2
 
-      - name: Build Storybook
-        run: npm run build-storybook
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '18'
 
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@4.1.4
-        with:
-          branch: gh-pages # The branch to deploy the Storybook
-          folder: storybook-static # The folder containing the built Storybook
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 8
+
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Build Storybook
+      run: npm run build-storybook
+
+    - name: Write .htaccess file
+      run: |
+        echo "AuthType Basic" > .htaccess
+        echo "AuthName \"Restricted Access\"" >> .htaccess
+        echo "AuthUserFile /dev/null" >> .htaccess
+        htpasswd -cb .htaccess "" "${{ secrets.PASSWORD }}"
+        echo "Require valid-user" >> .htaccess
+        cp .htaccess storybook-static/
+
+    - name: Deploy to GitHub Pages
+      uses: JamesIves/github-pages-deploy-action@4.1.4
+      with:
+        branch: gh-pages
+        folder: storybook-static
+        include: '*.html,*.js,*.css,*.png,*.jpg,*.jpeg,*.gif,*.svg,*.woff,*.ttf,*.woff2,*.eot,.htaccess'
